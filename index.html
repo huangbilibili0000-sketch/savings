@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="十日存旅費">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#e6f3fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171b33" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+<title>十日存旅費</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
+<style>
+/* Layout: one narrow column of soft, round panels on a dotted sky. Chunky candy button under the amount; the 10-day cycle is ten coins that fill in. */
+:root {
+  --bg: #e6f3fb;
+  --surface: #ffffff;
+  --fg: #2a3350;
+  --muted: #66738f;
+  --line: #cfe3f1;
+  --accent: #d63f6c;
+  --accent-fg: #ffffff;
+  --accent-soft: #ffe3ec;
+  --shadow: #a62b50;
+  --coin: #ffd25e;
+  --coin-edge: #e9a916;
+  --ok: #22875f;
+  --warn: #c4631a;
+  --font-body: "Huninn", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-num: "Fredoka", "Huninn", ui-rounded, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171b33; --surface: #222849; --fg: #f2f0ff; --muted: #a9b0d6; --line: #343c6b;
+    --accent: #ff8fb0; --accent-fg: #3a0f20; --accent-soft: #4a2d4d; --shadow: #c95a80;
+    --coin: #ffd25e; --coin-edge: #c98f10; --ok: #6fe0b2; --warn: #ffb070;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171b33; --surface: #222849; --fg: #f2f0ff; --muted: #a9b0d6; --line: #343c6b;
+  --accent: #ff8fb0; --accent-fg: #3a0f20; --accent-soft: #4a2d4d; --shadow: #c95a80;
+  --coin: #ffd25e; --coin-edge: #c98f10; --ok: #6fe0b2; --warn: #ffb070;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--line) 1.6px, transparent 1.6px);
+  background-size: 22px 22px;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+h1 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 400; letter-spacing: 0.06em; }
+.logo { width: 30px; height: 30px; color: var(--accent); flex: none; }
+.logo .stripe { stroke: var(--surface); stroke-width: 2.5; stroke-opacity: 0.6; }
+.logo .knob { fill: var(--surface); }
+#today { color: var(--muted); font-size: 13px; text-align: right; }
+
+.panel { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 24px; padding: 18px 20px; }
+
+.label { font-size: 13px; color: var(--muted); letter-spacing: 0.1em; }
+.amount-row { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; min-width: 0; padding-right: 56px; }
+.cur { font-family: var(--font-num); font-size: 18px; color: var(--muted); font-weight: 500; }
+#saved {
+  flex: 1; min-width: 0;
+  font-family: var(--font-num); font-weight: 600; font-size: 46px; line-height: 1.15;
+  color: var(--fg); font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+#saved.bump { animation: bump 0.45s ease-out; }
+@keyframes bump { 0% { transform: scale(1); color: var(--accent); } 35% { transform: scale(1.08); color: var(--accent); } 100% { transform: scale(1); } }
+.plane { position: absolute; top: 14px; right: 16px; width: 64px; height: 44px; color: var(--accent); }
+.plane .trail { stroke: var(--line); stroke-width: 2.5; stroke-dasharray: 2 6; stroke-linecap: round; fill: none; }
+.plane .body { fill: var(--accent-soft); stroke: currentColor; stroke-width: 2.5; stroke-linejoin: round; }
+
+#saveBtn {
+  width: 100%; min-height: 68px; border: 0; border-radius: 22px; cursor: pointer;
+  background: var(--accent); color: var(--accent-fg);
+  box-shadow: 0 6px 0 var(--shadow);
+  font-family: var(--font-body); font-size: 23px; font-weight: 400; letter-spacing: 0.1em;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+#saveBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--shadow); }
+#saveBtn:focus-visible, .ghost:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+#saveBtn .n { font-family: var(--font-num); font-weight: 600; letter-spacing: 0.02em; }
+
+.status-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pill { display: inline-block; padding: 3px 14px; border-radius: 999px; font-size: 14px; font-weight: 400; border: 2px solid currentColor; }
+.pill.ok { color: var(--ok); }
+.pill.wait { color: var(--accent); }
+.pill.due, .pill.late { color: var(--warn); }
+#next { font-size: 14px; }
+.cells { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 16px 0 10px; }
+.cells i { aspect-ratio: 1; border-radius: 50%; background: var(--bg); border: 2px dashed var(--line); display: block; }
+.cells i.on { background: var(--coin); border: 2px solid var(--coin-edge); }
+.cells.full i.on { background: var(--warn); border-color: var(--warn); }
+.cells-cap { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+h2 { margin: 0 0 8px; font-size: 15px; font-weight: 400; letter-spacing: 0.06em; }
+.log { list-style: none; margin: 0; padding: 0; }
+.log li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 2px dotted var(--line); font-size: 14px; }
+.log li:first-child { border-top: 0; }
+.log .d { color: var(--muted); }
+.log .v { font-family: var(--font-num); font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.log .v.minus { color: var(--warn); }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.ghost { margin-top: 10px; background: transparent; border: 2px solid var(--line); color: var(--muted); border-radius: 999px; padding: 7px 16px; font-family: var(--font-body); font-size: 13px; cursor: pointer; }
+.ghost[hidden] { display: none; }
+#note { font-size: 12px; color: var(--muted); text-align: center; margin: 4px 0 0; }
+
+.logbox { margin-top: 0; }
+.logbox summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; font-size: 15px; letter-spacing: 0.06em; color: var(--fg); }
+.logbox summary::-webkit-details-marker { display: none; }
+.logbox summary::after { content: ""; width: 9px; height: 9px; flex: none; border-right: 2.5px solid var(--muted); border-bottom: 2.5px solid var(--muted); transform: rotate(45deg); margin: -4px 4px 0 0; transition: transform 0.15s ease; }
+.logbox[open] summary::after { transform: rotate(225deg); margin-top: 4px; }
+.logbox summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
+.logbox .log, .logbox .empty { margin-top: 12px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.btns .ghost { margin-top: 0; }
+.filebtn { position: relative; display: inline-block; }
+.filebtn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.filebtn:focus-within { outline: 3px solid var(--accent); outline-offset: 4px; }
+details { margin-top: 14px; }
+summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+textarea {
+  display: block; width: 100%; margin-top: 10px; padding: 10px; resize: vertical;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; line-height: 1.5;
+  background: var(--bg); color: var(--fg); border: 2px solid var(--line); border-radius: 14px;
+}
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.confirm { margin-top: 14px; padding: 12px 14px; border: 2px solid var(--warn); border-radius: 16px; }
+.confirm p { margin: 0; font-size: 14px; }
+.danger { border: 0; border-radius: 999px; padding: 9px 18px; background: var(--warn); color: var(--surface); font-family: var(--font-body); font-size: 14px; font-weight: 400; cursor: pointer; }
+.danger:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.fixbox { border-color: var(--accent); }
+#fixInput {
+  display: block; width: 100%; margin-top: 8px; padding: 8px 14px;
+  font-family: var(--font-num); font-weight: 600; font-size: 24px; font-variant-numeric: tabular-nums;
+  background: var(--bg); color: var(--fg); border: 2px solid var(--line); border-radius: 16px;
+}
+#fixInput:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.okbtn { border: 0; border-radius: 999px; padding: 9px 18px; background: var(--accent); color: var(--accent-fg); font-family: var(--font-body); font-size: 14px; font-weight: 400; cursor: pointer; }
+.okbtn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.fx { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 50; }
+.wish {
+  position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); z-index: 51; pointer-events: none;
+  padding: 16px 40px 18px; border-radius: 28px; border: 3px solid var(--accent);
+  background: var(--surface); color: var(--accent); text-align: center;
+  font-family: var(--font-body); letter-spacing: 0.12em; white-space: nowrap;
+  box-shadow: 0 6px 0 var(--shadow);
+  animation: wishpop 3.6s ease-out forwards;
+}
+.wish .t1 { font-size: 20px; color: var(--muted); }
+.wish .t2 { font-size: 34px; line-height: 1.3; }
+@keyframes wishpop {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  12% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  20% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #saved.bump { animation: none; }
+  #saveBtn { transition: none; }
+  .wish { animation: none; }
+  .logbox summary::after { transition: none; }
+}
+</style>
+
+</head>
+<body>
+<main>
+  <header>
+    <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M11 9V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="4" y="9" width="24" height="18" rx="6" fill="currentColor"/><path class="stripe" d="M11 9v18M21 9v18"/><circle class="knob" cx="16" cy="18" r="2.2"/></svg>十日存旅費</h1>
+    <span id="today"></span>
+  </header>
+
+  <section class="panel" aria-label="目前已存旅費">
+    <svg class="plane" viewBox="0 0 64 44" aria-hidden="true"><path class="trail" d="M2 40 C14 40 18 24 30 26"/><path class="body" d="M30 26 L60 6 L48 38 L40 28 Z"/><path class="body" d="M40 28 L60 6" /></svg>
+    <div class="label">目前已存旅費</div>
+    <div class="amount-row">
+      <span class="cur">NT$</span>
+      <div id="saved" aria-label="目前已存旅費金額（元）">0</div>
+    </div>
+  </section>
+
+  <button id="saveBtn" type="button">存 <span class="n">1,000</span> 元</button>
+
+  <section class="panel" aria-live="polite" aria-label="存錢週期">
+    <div class="status-top">
+      <span id="pill" class="pill wait">載入中</span>
+      <span id="next"></span>
+    </div>
+    <div id="cells" class="cells" aria-hidden="true"></div>
+    <div class="cells-cap"><span id="cap">每 10 天存一次</span><span>10 天</span></div>
+  </section>
+
+  <details class="panel logbox" aria-label="紀錄">
+    <summary><span>最近紀錄<span id="logCount"></span></span></summary>
+    <ul id="log" class="log"></ul>
+    <p id="empty" class="empty">還沒有紀錄。按上面的按鈕存下第一個 1,000 元。</p>
+    <button id="undo" class="ghost" type="button" hidden>撤銷上一筆存入</button>
+  </details>
+
+  <section class="panel" aria-label="備份與還原">
+    <h2>備份與還原</h2>
+    <p class="hint" style="margin-top:0">備份檔包含已存金額和全部紀錄。還原會取代目前的資料。</p>
+    <div class="btns">
+      <button id="bkFile" class="ghost" type="button">備份成檔案</button>
+      <label id="rsFile" class="ghost filebtn">從檔案還原<input id="rsInput" type="file" accept=".json,.txt,application/json,text/plain" aria-label="選擇備份檔還原"></label>
+    </div>
+    <details id="txt">
+      <summary>用文字備份／還原</summary>
+      <textarea id="bkText" rows="5" spellcheck="false" aria-label="備份文字，可貼上備份內容還原"></textarea>
+      <div class="btns">
+        <button id="bkShow" class="ghost" type="button">產生備份文字</button>
+        <button id="bkCopy" class="ghost" type="button">複製</button>
+        <button id="rsText" class="ghost" type="button">用這段文字還原</button>
+      </div>
+    </details>
+    <div id="confirm" class="confirm" hidden>
+      <p id="confirmText"></p>
+      <div class="btns">
+        <button id="rsApply" class="danger" type="button">套用還原</button>
+        <button id="rsCancel" class="ghost" type="button">取消</button>
+      </div>
+    </div>
+    <p id="bkMsg" class="hint" aria-live="polite"></p>
+  </section>
+
+  <section class="panel" aria-label="修正與完成願望">
+    <h2>修正與完成願望</h2>
+    <p class="hint" style="margin-top:0">金額不會被誤觸修改，要先按「修正金額」才能改。</p>
+    <div class="btns">
+      <button id="fixOpen" class="ghost" type="button">修正金額</button>
+      <button id="clearOpen" class="ghost" type="button">完成願望</button>
+    </div>
+    <div id="fixBox" class="confirm fixbox" hidden>
+      <label for="fixInput" class="label">改成實際已存的金額（元）</label>
+      <input id="fixInput" type="text" inputmode="numeric" autocomplete="off">
+      <div class="btns">
+        <button id="fixOk" class="okbtn" type="button">確定修改</button>
+        <button id="fixCancel" class="ghost" type="button">取消</button>
+      </div>
+    </div>
+    <div id="clearBox" class="confirm" hidden>
+      <p>願望完成了嗎？按下確定會放鞭炮慶祝，然後把已存金額和所有紀錄清空，重新開始新的目標。建議先備份。</p>
+      <div class="btns">
+        <button id="clearBackup" class="ghost" type="button">先備份</button>
+        <button id="clearOk" class="danger" type="button">確定完成</button>
+        <button id="clearCancel" class="ghost" type="button">取消</button>
+      </div>
+    </div>
+    <p id="fixMsg" class="hint" aria-live="polite"></p>
+  </section>
+
+  <p id="note"></p>
+</main>
+
+<script>
+(function () {
+  var STEP = 1000, CYCLE = 10, KEY = "savings-v1", MAXLOG = 60;
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n) { return String(n).padStart(2, "0"); };
+  var keyOf = function (d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+  var parse = function (s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+  var dayDiff = function (a, b) { return Math.round((parse(a) - parse(b)) / 864e5); };
+  var fmt = function (n) { return Number(n).toLocaleString("en-US"); };
+  var fmtDate = function (d) { return d.toLocaleDateString("zh-TW", { month: "long", day: "numeric", weekday: "short" }); };
+
+  function norm(s) {
+    s = s || {};
+    return {
+      saved: Math.max(0, Number(s.saved) || 0),
+      lastDate: typeof s.lastDate === "string" ? s.lastDate : null,
+      seeded: s.seeded === true,
+      log: Array.isArray(s.log) ? s.log.slice(-MAXLOG) : []
+    };
+  }
+
+  // Starting point set by the owner: NT$ 61,000 saved, next save due 2026-11-06 (last save counted as 2026-10-27).
+  function seed() {
+    return norm({ saved: 61000, lastDate: "2026-10-27", seeded: true,
+      log: [{ d: "2026-11-03", t: Date.now(), type: "adjust", amt: 61000, to: 61000 }] });
+  }
+
+  var state = norm(null);
+  try { var raw = localStorage.getItem(KEY); if (raw) state = norm(JSON.parse(raw)); } catch (e) {}
+  if (!state.seeded) {
+    state = seed();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  var ref = null, chain = Promise.resolve();
+
+  function setNote(t) { $("note").textContent = t; }
+
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    if (ref) {
+      var snap = JSON.parse(JSON.stringify(state));
+      chain = chain.then(function () { return ref.set(snap); }).catch(function () {
+        setNote("雲端儲存失敗，資料先留在這台裝置上。");
+      });
+    }
+  }
+
+  function render() {
+    $("saved").textContent = fmt(state.saved);
+
+    var now = new Date(), today = keyOf(now);
+    $("today").textContent = "今天 " + fmtDate(now);
+
+    var pill = $("pill"), next = $("next"), filled = 0, d = null;
+    if (!state.lastDate) {
+      pill.className = "pill due"; pill.textContent = "還沒開始";
+      next.textContent = "今天就存第一筆";
+      $("cap").textContent = "每 10 天存一次";
+    } else {
+      d = Math.max(0, dayDiff(today, state.lastDate));
+      var due = parse(state.lastDate); due.setDate(due.getDate() + CYCLE);
+      filled = Math.min(d, CYCLE);
+      if (d === 0) { pill.className = "pill ok"; pill.textContent = "今天已存"; next.textContent = "下次 " + fmtDate(due); }
+      else if (d < CYCLE) { pill.className = "pill wait"; pill.textContent = "還有 " + (CYCLE - d) + " 天"; next.textContent = "下次 " + fmtDate(due); }
+      else if (d === CYCLE) { pill.className = "pill due"; pill.textContent = "今天該存了"; next.textContent = "距上次存入 10 天"; }
+      else { pill.className = "pill late"; pill.textContent = "已逾期 " + (d - CYCLE) + " 天"; next.textContent = "距上次存入 " + d + " 天"; }
+      $("cap").textContent = "距上次存入 " + d + " 天";
+    }
+
+    var cells = $("cells");
+    cells.className = "cells" + (d !== null && d >= CYCLE ? " full" : "");
+    cells.textContent = "";
+    for (var i = 0; i < CYCLE; i++) {
+      var c = document.createElement("i");
+      if (i < filled) c.className = "on";
+      cells.appendChild(c);
+    }
+
+    var ul = $("log"); ul.textContent = "";
+    var items = state.log.slice(-10).reverse();
+    items.forEach(function (e) {
+      var li = document.createElement("li");
+      var l = document.createElement("span"); l.className = "d";
+      var dt = parse(e.d);
+      l.textContent = (dt.getMonth() + 1) + "/" + dt.getDate() + (e.type === "save" ? "　存入" : "　設定金額");
+      var r = document.createElement("span"); r.className = "v";
+      if (e.type === "save") r.textContent = "+" + fmt(e.amt);
+      else { r.textContent = "→ " + fmt(e.to); if (e.amt < 0) r.className += " minus"; }
+      li.appendChild(l); li.appendChild(r); ul.appendChild(li);
+    });
+    $("empty").hidden = items.length > 0;
+    $("logCount").textContent = state.log.length ? "（" + state.log.length + "）" : "";
+    $("undo").hidden = !state.log.some(function (e) { return e.type === "save"; });
+  }
+
+  function bump() {
+    var el = $("saved");
+    el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+  }
+
+  $("saveBtn").addEventListener("click", function () {
+    var t = new Date();
+    var before = state.lastDate;
+    state.saved += STEP;
+    state.lastDate = keyOf(t);
+    state.log.push({ d: keyOf(t), t: t.getTime(), type: "save", amt: STEP, prev: before });
+    state.log = state.log.slice(-MAXLOG);
+    persist(); render(); bump();
+  });
+
+  $("undo").addEventListener("click", function () {
+    for (var i = state.log.length - 1; i >= 0; i--) {
+      if (state.log[i].type === "save") {
+        var e = state.log.splice(i, 1)[0];
+        state.saved = Math.max(0, state.saved - e.amt);
+        var prev = null;
+        for (var j = state.log.length - 1; j >= 0; j--) if (state.log[j].type === "save") { prev = state.log[j]; break; }
+        state.lastDate = ("prev" in e) ? e.prev : (prev ? prev.d : null);
+        break;
+      }
+    }
+    persist(); render();
+  });
+
+  // ---- Backup and restore ----
+  var pending = null;
+  function msg(t) { $("bkMsg").textContent = t; }
+  function payload() {
+    return JSON.stringify({ app: "ten-day-savings", v: 1, exportedAt: new Date().toISOString(), saved: state.saved, lastDate: state.lastDate, log: state.log }, null, 2);
+  }
+  function parseBackup(text) {
+    var o; try { o = JSON.parse(text); } catch (e) { return null; }
+    if (!o || o.app !== "ten-day-savings" || typeof o.saved !== "number" || !isFinite(o.saved) || o.saved < 0 || !Array.isArray(o.log)) return null;
+    var re = /^\d{4}-\d{2}-\d{2}$/, log = [];
+    o.log.forEach(function (e) {
+      if (e && re.test(e.d) && (e.type === "save" || e.type === "adjust") && isFinite(e.amt)) {
+        var x = { d: e.d, t: Number(e.t) || 0, type: e.type, amt: Number(e.amt) };
+        if (e.type === "adjust") x.to = Number(e.to) || 0;
+        if (e.type === "save" && "prev" in e) x.prev = (typeof e.prev === "string" && re.test(e.prev)) ? e.prev : null;
+        log.push(x);
+      }
+    });
+    var last = (typeof o.lastDate === "string" && re.test(o.lastDate)) ? o.lastDate : null;
+    return norm({ saved: Math.min(Math.floor(o.saved), 999999999), lastDate: last, seeded: true, log: log });
+  }
+  function stage(text) {
+    var b = parseBackup(text);
+    if (!b) { msg("這不是有效的備份內容。請使用這個工具備份出來的檔案或文字。"); return; }
+    pending = b;
+    $("confirmText").textContent = "備份內容：已存 NT$ " + fmt(b.saved) + "，" + b.log.length + " 筆紀錄" + (b.lastDate ? "，最後存入 " + b.lastDate : "") + "。套用後會取代目前的資料（目前 NT$ " + fmt(state.saved) + "）。";
+    $("confirm").hidden = false;
+    msg("");
+  }
+  function showText() { $("txt").open = true; $("bkText").value = payload(); }
+
+  $("bkFile").addEventListener("click", async function () {
+    var dl = null;
+    try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) {}
+    if (!dl) {
+      showText();
+      try {
+        var blob = new Blob([payload()], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = "savings-backup-" + keyOf(new Date()) + ".json";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        msg("已產生備份檔。如果沒有出現下載，請複製下方的備份文字存起來。");
+      } catch (e) { msg("這個畫面不能直接存檔，請複製下方的備份文字。"); }
+      return;
+    }
+    try {
+      var res = await dl.save({ filename: "savings-backup-" + keyOf(new Date()) + ".json", data: payload() });
+      msg(res && res.status === "saved" ? "備份檔已儲存。" : "備份檔已送出。");
+    } catch (e) {
+      if (e && e.code === "declined") msg("已取消備份。");
+      else { showText(); msg("存檔失敗，請改用下方的備份文字。"); }
+    }
+  });
+
+  $("rsInput").addEventListener("click", function () { msg("如果沒有跳出選擇檔案的視窗，請改用下方「用文字備份／還原」。"); });
+  $("rsInput").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    this.value = "";
+    if (!f) return;
+    if (f.size > 1000000) { msg("檔案太大，不像是這個工具的備份。"); return; }
+    var r = new FileReader();
+    r.onload = function () { stage(String(r.result)); };
+    r.onerror = function () { msg("讀不到這個檔案，請再試一次。"); };
+    r.readAsText(f);
+  });
+
+  $("bkShow").addEventListener("click", function () { $("bkText").value = payload(); msg(""); });
+  $("bkCopy").addEventListener("click", function () {
+    var ta = $("bkText");
+    if (!ta.value.trim()) ta.value = payload();
+    var fallback = function () { ta.focus(); ta.select(); msg("已選取文字，請長按或按 Ctrl+C 複製。"); };
+    try {
+      navigator.clipboard.writeText(ta.value).then(function () { msg("已複製備份文字。"); }, fallback);
+    } catch (e) { fallback(); }
+  });
+  $("rsText").addEventListener("click", function () {
+    if (!$("bkText").value.trim()) { msg("請先把備份文字貼到上面的框裡。"); return; }
+    stage($("bkText").value);
+  });
+
+  $("rsApply").addEventListener("click", function () {
+    if (!pending) return;
+    state = pending; pending = null;
+    $("confirm").hidden = true;
+    persist(); render();
+    msg("已還原。");
+  });
+  $("rsCancel").addEventListener("click", function () {
+    pending = null; $("confirm").hidden = true; msg("已取消還原。");
+  });
+
+  // ---- Fireworks and confetti for a finished wish ----
+  function celebrate() {
+    var toast = document.createElement("div");
+    toast.className = "wish";
+    var l1 = document.createElement("div"); l1.className = "t1"; l1.textContent = "恭喜你";
+    var l2 = document.createElement("div"); l2.className = "t2"; l2.textContent = "願望已達成";
+    toast.appendChild(l1); toast.appendChild(l2);
+    toast.setAttribute("aria-hidden", "true");
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.remove(); }, 3600);
+
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var cv = document.createElement("canvas");
+    cv.className = "fx"; cv.setAttribute("aria-hidden", "true");
+    var ctx = cv.getContext && cv.getContext("2d");
+    if (!ctx) return;
+    document.body.appendChild(cv);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), W = window.innerWidth, H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
+    var colors = ["#ff6f9c", "#ffd25e", "#6fe0b2", "#7cc4ff", "#c39bff", "#ff9f5a"];
+    var pick = function () { return colors[Math.floor(Math.random() * colors.length)]; };
+    var parts = [], t0 = performance.now(), last = t0, nextBurst = 0;
+
+    function burst(x, y) {
+      var n = 48, base = Math.random() * 6.28;
+      for (var i = 0; i < n; i++) {
+        var a = base + (i / n) * 6.2832, sp = 2 + Math.random() * 4.5;
+        parts.push({ kind: "spark", x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: 0.011 + Math.random() * 0.01, r: 2 + Math.random() * 2, c: pick() });
+      }
+    }
+    function rain() {
+      for (var i = 0; i < 2; i++) {
+        parts.push({ kind: "paper", x: Math.random() * W, y: -12, vx: Math.random() - 0.5, vy: 1.6 + Math.random() * 2, rot: Math.random() * 6, life: 1, decay: 0.004, c: pick() });
+      }
+    }
+    function frame(now) {
+      var dt = Math.min(2, (now - last) / 16.7), el = now - t0;
+      last = now;
+      ctx.clearRect(0, 0, W, H);
+      if (el < 2600 && el >= nextBurst) {
+        burst(W * (0.15 + Math.random() * 0.7), H * (0.15 + Math.random() * 0.4));
+        nextBurst = el + 350 + Math.random() * 250;
+      }
+      if (el < 2800) rain();
+      parts = parts.filter(function (p) { return p.life > 0 && p.y < H + 20; });
+      parts.forEach(function (p) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.kind === "spark" ? p.life : p.life * 2));
+        ctx.fillStyle = p.c;
+        if (p.kind === "spark") {
+          p.vx *= 0.985; p.vy = p.vy * 0.985 + 0.06 * dt;
+          p.x += p.vx * dt; p.y += p.vy * dt; p.life -= p.decay * dt;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+        } else {
+          p.x += (p.vx + Math.sin(p.y / 30) * 0.6) * dt; p.y += p.vy * dt; p.rot += 0.1 * dt; p.life -= p.decay * dt;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-3, -5, 6, 10); ctx.restore();
+        }
+      });
+      ctx.globalAlpha = 1;
+      if ((el < 3000 || parts.length) && el < 9000) requestAnimationFrame(frame);
+      else cv.remove();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- Fix amount (opened on purpose) and clear everything ----
+  function fmsg(t) { $("fixMsg").textContent = t; }
+  function closeBoxes() { $("fixBox").hidden = true; $("clearBox").hidden = true; }
+
+  $("fixOpen").addEventListener("click", function () {
+    closeBoxes(); fmsg("");
+    $("fixBox").hidden = false;
+    var i = $("fixInput");
+    i.value = String(state.saved);
+    i.focus(); i.select();
+  });
+  $("fixCancel").addEventListener("click", function () { closeBoxes(); fmsg("沒有修改。"); });
+  function applyFix() {
+    var digits = $("fixInput").value.replace(/[^\d]/g, "");
+    if (digits === "") { fmsg("請輸入金額。"); return; }
+    var v = Math.min(parseInt(digits, 10), 999999999);
+    if (v === state.saved) { closeBoxes(); fmsg("金額沒有變。"); return; }
+    state.log.push({ d: keyOf(new Date()), t: Date.now(), type: "adjust", amt: v - state.saved, to: v });
+    state.log = state.log.slice(-MAXLOG);
+    state.saved = v;
+    persist(); render(); closeBoxes();
+    fmsg("已修正為 NT$ " + fmt(v) + "。");
+  }
+  $("fixOk").addEventListener("click", applyFix);
+  $("fixInput").addEventListener("keydown", function (ev) { if (ev.key === "Enter") applyFix(); });
+
+  $("clearOpen").addEventListener("click", function () { closeBoxes(); fmsg(""); $("clearBox").hidden = false; });
+  $("clearCancel").addEventListener("click", function () { closeBoxes(); fmsg("還沒完成，繼續加油～"); });
+  $("clearBackup").addEventListener("click", function () { $("bkFile").click(); });
+  $("clearOk").addEventListener("click", function () {
+    state = norm({ saved: 0, lastDate: null, seeded: true, log: [] });
+    pending = null; $("confirm").hidden = true;
+    persist(); render(); closeBoxes();
+    fmsg("恭喜完成願望！已經歸零，可以開始新的目標囉～");
+    celebrate();
+  });
+
+  render();
+  setNote("資料暫存在這個瀏覽器。");
+
+  // Sync to the viewer's private store when it is available.
+  (async function () {
+    try {
+      if (!window.claude || !window.claude.use) return;
+      var db = await window.claude.use("db");
+      var user = await window.claude.use("user");
+      if (!db || !user) return;
+      var id = await user.id();
+      if (!id) return;
+      var r = db.doc("data/users/" + id + "/savings");
+      var snap = await r.get();
+      var remote = snap.exists ? norm(snap.data()) : null;
+      ref = r;
+      if (remote && remote.seeded) state = remote; else persist();
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      render();
+      setNote("資料存在你的帳號，換裝置也看得到。");
+    } catch (e) {}
+  })();
+})();
+</script>
+</body>
+</html>
